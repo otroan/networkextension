@@ -44,3 +44,9 @@ To extend the network a node should try in preference order:
 
 ## Southbound addressing
 
+
+## Points
+- source address selection when acting as router
+- self similarity 
+- recursive. Supported mechanisms can also be used unsupported 
+
