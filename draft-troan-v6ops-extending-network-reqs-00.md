@@ -6,12 +6,29 @@ ipr: trust200902
 area: Internet
 wg: v6ops
 cat: info
+v: 3
 
 author:
+   -
     ins: O. Troan
     name: Ole Troan
     org: Cisco Systems Inc.
     email: otroan@cisco.com
+   -
+    ins: N. Buraglio
+    name: Nick Buraglio
+    org: Energy Sciences Network
+    email: buraglio@forwardingplane.net
+   
+
+normative:
+  RFC2119:
+
+informative:
+  RFC7788:
+  RFC8415:
+  RFC4389:
+  RFC6296:
 
 --- abstract
 
@@ -27,16 +44,17 @@ A node may have downstream links or host virtual machines or for other reasons e
  - DHCPv6 Prefix Delegation (PD) {{?RFC8415}}
  - Ethernet Bridging
  - ND Proxy {{!RFC4389}}
- - Address sharing / stealing
+ - Address masquerading
+ - NPTv6 {{RFC6296}}
  - NAPT66
  - Multilink Subnet routing
 
-The upstream link, that is the network link that the EN is connected to upstream may or may not support protocols helping network extensions. The EN may to some extent be able to detect the capabilities of the upstream link.
-The EN acquires addresses on the upstream link as described in {{!RFC7084}}. The upstream link is either numbered via SLAAC, via DHCPv6 address assignment or it's "unnumbered". The EN should follow the requirements in RFC7084, specifically requirements W-1 to W-5.
+The upstream link, that is the network link that the EN is connected to upstream may or may not support protocols to aid in forther network extensions. The EN may posses some cpacity to detect the capabilities of the upstream link.
+The EN acquires addresses on the upstream link as described in {{!RFC7084}}. The upstream link is either numbered via SLAAC, via DHCPv6 address assignment or it's "unnumbered". The EN should follow the requirements in {{RFC7084}}, specifically requirements W-1 to W-5.
 
-There is a level of recursion here. The mechanisms used on the upstream network to extend the network can be used by another EN below it and so on. Many of the mechanisms described here do not handle loops well, so caution must be exercised. While the IPv6 address space is large, it is not infinite. Assigning a /64 to each node is not feasible if the network is extended to enough levels or if the initial network block is not large enough. These considerations will determine if SLAAC is suitable for all the downstream links.
+Further extending the upstream network introduces a level of recursion into the network that does not otherwise exist. The mechanisms used by the first EN to extend the upstream network may potentially be used by another EN downstream to further extend the network, thus introducing the potential for recursion to the level of network resource exhaustion. Additionally, many of the mechanisms described do not have robust loop protection or detection, so caution must be exercised to prevent such loops from occurring. While the IPv6 address space is large, it is not infinite, therefore, assigning a /64 to each node is not feasible if the network is extended to enough levels, of the address plan did not account for such potential or if the initial network block is not sized appropriately. These considerations will determine if SLAAC is suitable for all the downstream links.
 
-There are two essential problems with extending the network. Addressing and routing. There are multiple approaches depending on the use cases and the limitations of the upstream network and implementations.
+There are two essential problems with extending the network: addressing and routing. There are multiple approaches depending on the use cases and the limitations of the upstream network and implementations.
 
 ## Upstream link capabilities
 
@@ -52,7 +70,7 @@ There are two essential problems with extending the network. Addressing and rout
     - Single address
     - Multiple addresses
 
-A /64 prefix may be advertised on the upstream link for stateless address autoconfiguration (SLAAC), but it may still limit the number of addresses a node may use. Similarly the network may use 802.1x authentication limiting MAC addresses a host can use, or control the addresses used by the node using DHCPv6 address assignment.
+A /64 prefix may be advertised on the upstream link for stateless address autoconfiguration (SLAAC), but it may still limit the number of addresses a node may use. Similarly, the network may use 802.1x authentication limiting MAC addresses a host may use, or control the addresses used by the node using DHCPv6 address assignment.
 
 The network may or may not support DHCPv6 prefix assignment. If it does, it may support multiple prefixes, or it may support only a single prefix. It may support prefixes of any length, or it may support only /64 prefixes. If the network supports HNCP, it may restrict access to participate in the HNCP network.
 
@@ -62,10 +80,10 @@ The EN must therefore go through a set of heuristics to determine which method w
 
 ## Considerations
 
-The EN must take address stability into consideration. While a single address is "simple" to renumber. Renumber a network with a large number of addresses is not. Global addresses are ephemeral. And while IPv6 addresses and prefixes come with a lifetime, there is no guarantee as it has been seen in operational networks that networks keeps this promise. The EN must do it's best to support renumbering of the downstream network. Both "announced" via correct use of address/prefix lifetimes and "unannounced" by detecting that the upstream network has renumbered.
+The EN must take address stability into consideration. While a single address is "simple" to renumber. Renumbering a network with a large number of addresses is not. Unless statically assigned, global addresses are ephemeral. Ahile IPv6 addresses and prefixes come with a lifetime, there is no guarantee [needs explained further --nb] as it has been seen in operational networks that networks keeps this promise. The EN must support renumbering of the downstream network in a methodical, repeatable, and consistent manner. Both "announced" via correct use of address/prefix lifetimes and "unannounced" by detecting that the upstream network has renumbered.
 In addition the EN should support the use of ULA addresses on the downstream network. And connect that to the upstream network using one of NPTv6, NAT66 or NAPT66 depending on the circumstances.
 
-The EN is essentially a router. It has a duality upstream, acting as a host to acquire addresses on the upstream interface. It acts as a router and forwards packets between interfaces. In addition to forwarding packets it must support acting as a router as specified in {{?RFC4861}}. It should also be able to act as a DHCPv6 server for addresses and prefixes.
+In performing these functions, the EN operates as a router. It has a duality upstream, acting as a host to acquire addresses on the upstream interface. It acts as a router and forwards packets between interfaces. In addition to forwarding packets it must support acting as a router as specified in {{?RFC4861}}. It should also be able to act as a DHCPv6 server for addresses and prefixes.
 For the purpose of source address selection, it must follow the weak host model. The upstream interface may be assigned only a link-local address and it that case the source address selection algorithm must pick a source address from another interface.
 
 The EN doesn't necessarily know a priori how much address space it needs. It also depends on which addressing model that is used. A single /64 is enough to number an infinitely large downstream network. But if each host or container is supposed to be numbered with an individual /64 that will not scale well in many networks.
@@ -90,11 +108,16 @@ Using bridging would also do nothing to alleivate the sizes required for the ups
 
 This is when an address from the upstream prefix is used on a downstream link. The EN must defend this address and respond to ND address resolution requests for the address.
 
-## Address sharing / stealing
+## Address masquerading
 
 If only a single address is available on the upstream link, the EN may number the downstream network using ULA addresses and connect to the upstream network using NAPT66.
 
-If there is a requirement of absoulte address stability in the downstream network NAT66 or NPTv6 is used. With the downstream network being numbered from the ULA address space.
+If there is a requirement of absoulte address stability in the downstream network NAT66 or NPTv6 is used. With the downstream network being numbered from the ULA address space. 
+
+Utilizing ULA addressing in a dual stacked network also implies that the address selection defined in {{RFC6724}} is followed and in the presence of IPv4 addressing and a destination A record, IPv6 will not be selected [This will chance if draft-ietf-6man-rfc6724-update is published as an update to RFC6724].  
+
+## NPTv6 
+[Stopping point 7-Oct-2023]
 
 # Methods of address assignment
 
@@ -143,7 +166,13 @@ To extend the network a node should try in preference order:
 2) DHCPv6 PD
 3) Ethernet Bridging
 
+# Conventions and Definitions
 
-Security Considerations
+{::boilerplate bcp14-tagged}
+
+# Security Considerations
 =======================
 TBD
+# IANA Considerations
+TBD
+# Acknowledgments
