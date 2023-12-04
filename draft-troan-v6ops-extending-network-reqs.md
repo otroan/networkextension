@@ -1,6 +1,6 @@
 ---
 title: Extending the Network - Host Requirements
-docname: draft-troan-v6ops-extending-network-reqs-00
+docname: draft-troan-v6ops-extending-network-reqs-latest
 date: 2023-10-05
 ipr: trust200902
 area: Internet
@@ -19,7 +19,7 @@ author:
     name: Nick Buraglio
     org: Energy Sciences Network
     email: buraglio@forwardingplane.net
-   
+
 
 normative:
   RFC2119:
@@ -55,6 +55,11 @@ The EN acquires addresses on the upstream link as described in {{!RFC7084}}. The
 Further extending the upstream network introduces a level of recursion into the network that does not otherwise exist. The mechanisms used by the first EN to extend the upstream network may potentially be used by another EN downstream to further extend the network, thus introducing the potential for recursion to the level of network resource exhaustion. Additionally, many of the mechanisms described do not have robust loop protection or detection, so caution must be exercised to prevent such loops from occurring. While the IPv6 address space is large, it is not infinite, therefore, assigning a /64 to each node is not feasible if the network is extended to enough levels, of the address plan did not account for such potential or if the initial network block is not sized appropriately. These considerations will determine if SLAAC is suitable for all the downstream links.
 
 There are two essential problems with extending the network: addressing and routing. There are multiple approaches depending on the use cases and the limitations of the upstream network and implementations.
+
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL
+NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and
+"OPTIONAL" in this document are to be interpreted as described in
+{{!RFC 2119}}.
 
 ## Upstream link capabilities
 
@@ -112,11 +117,11 @@ This is when an address from the upstream prefix is used on a downstream link. T
 
 If only a single address is available on the upstream link, the EN may number the downstream network using ULA addresses and connect to the upstream network using NAPT66.
 
-If there is a requirement of absoulte address stability in the downstream network NAT66 or NPTv6 is used. With the downstream network being numbered from the ULA address space. 
+If there is a requirement of absoulte address stability in the downstream network NAT66 or NPTv6 is used. With the downstream network being numbered from the ULA address space.
 
-Utilizing ULA addressing in a dual stacked network also implies that the address selection defined in {{RFC6724}} is followed and in the presence of IPv4 addressing and a destination A record, IPv6 will not be selected [This will chance if draft-ietf-6man-rfc6724-update is published as an update to RFC6724].  
+Utilizing ULA addressing in a dual stacked network also implies that the address selection defined in {{RFC6724}} is followed and in the presence of IPv4 addressing and a destination A record, IPv6 will not be selected [This will chance if draft-ietf-6man-rfc6724-update is published as an update to RFC6724].
 
-## NPTv6 
+## NPTv6
 [Stopping point 7-Oct-2023]
 
 # Methods of address assignment
@@ -173,6 +178,22 @@ To extend the network a node should try in preference order:
 # Security Considerations
 =======================
 TBD
+
 # IANA Considerations
 TBD
+
 # Acknowledgments
+
+The following people provided advice or review comments that
+substantially improved this document: Brian Carpenter, Owen DeLong
+
+# Text to add
+Owen: “Any of the mechanisms which do not provide complete end-to-end address transparency and connectivity should be considered sub-standard and implemented only in circumstances where no better alternative exists.”
+
+Brian:
+To avoid a polemic here, maybe the draft should draw a clear line between solutions that do preserve e2e addresses and those that don't, with a note that the latter bring with them some or all of the documented issues with NAT. The topic is nicely described at https://www.rfc-editor.org/rfc/rfc6296.html#section-5 and of course in RFC 2993.
+
+BFD keepalive.
+Two pronged approach for the PD to detect possible lost forwarding state.
+- Monitor counters for forward progress
+- Send probes to itself and see if they come back.
